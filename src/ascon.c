@@ -250,14 +250,23 @@ int tsm_ascon_aead_update(void *ctx, const unsigned char *in, size_t inl, unsign
             in += c->block_size - c->buf_len;
             inl -= c->block_size - c->buf_len;
             if (c->mode == TSM_ASCON_AEAD_128) {
-                c->s.x[0] ^= load_u64(c->buf, 8);
+                uint64_t c0 = load_u64(c->buf, 8);
+                c->s.x[0] ^= c0;
                 store_u64(c->s.x[0], 8, out);
+                if (c->flags & TSM_CIPH_FLAG_DECRYPT)
+                    c->s.x[0] = c0;
                 P6(&c->s);
             } else {
-                c->s.x[0] ^= load_u64(c->buf, 8);
-                c->s.x[1] ^= load_u64(c->buf + 8, 8);
+                uint64_t c0 = load_u64(c->buf, 8);
+                uint64_t c1 = load_u64(c->buf + 8, 8);
+                c->s.x[0] ^= c0;
+                c->s.x[1] ^= c1;
                 store_u64(c->s.x[0], 8, out);
                 store_u64(c->s.x[1], 8, out + 8);
+                if (c->flags & TSM_CIPH_FLAG_DECRYPT) {
+                    c->s.x[0] = c0;
+                    c->s.x[1] = c1;
+                }
                 P8(&c->s);
             }
             c->buf_len = 0;
